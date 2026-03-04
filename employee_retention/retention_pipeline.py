@@ -161,11 +161,12 @@ def explain_employee(explainer, X_test_row, feature_names, top_n=3):
 # ---------------------------
 
 def main():
-    output_dir = './outputs'
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    output_dir = os.path.join(base_dir, 'outputs')
     os.makedirs(output_dir, exist_ok=True)
     print(f"Output directory: {output_dir}")
 
-    data = load_data('./data/IBM_Test_Project_Preprocessed_Data.xlsx')
+    data = load_data(os.path.join(base_dir, 'data', 'IBM_Test_Project_Preprocessed_Data.xlsx'))
     X = data.drop(columns=['EmployeeNumber', 'Retained'])
     y = data['Retained']
 
