@@ -5,7 +5,7 @@ import shap
 import matplotlib.pyplot as plt
 import joblib
 
-from data.IBM data.py import engineer_feautres
+from employee_retention.retention_pipeline import engineer_features
 from sklearn.preprocessing import StandardScaler
 
 # Load trained model and scaler
@@ -54,7 +54,8 @@ if submitted:
     st.markdown(f"### ⬆️ Predicted Retention Risk: **{risk_percent}%** chance of leaving")
 
     # SHAP Explanation
-    explainer = shap.Explainer(model.base_estimator)
+    base_model = getattr(model, 'estimator', getattr(model, 'base_estimator', model))
+    explainer = shap.Explainer(base_model)
     shap_values = explainer(scaled_input)
 
     st.subheader("Top Contributing Features")
