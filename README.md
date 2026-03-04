@@ -97,7 +97,8 @@ employee-retention-risk/
 │   ├── Retention_Risk_Analysis_Output.xlsx
 │   └── Risk_Distribution_PieChart.png
 │
-├── src/                            # Modular machine learning pipeline
+├── employee_retention/              # Modular machine learning pipeline
+│   ├── __init__.py
 │   └── retention_pipeline.py
 │
 ├── .gitignore                      # Files to exclude from version control
@@ -119,7 +120,7 @@ cd employee-retention-risk
 pip install -r requirements.txt
 
 # 3. Run the pipeline script
-python src/retention_pipeline.py
+python -m employee_retention.retention_pipeline
 
 # 4. Launch the notebook for a full walkthrough
 jupyter notebook notebooks/Full_Retention_Model_Walkthrough_UPDATED.ipynb
