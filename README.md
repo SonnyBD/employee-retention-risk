@@ -1,6 +1,6 @@
 # 📊 Employee Retention Risk Prediction
 
-![Python](https://img.shields.io/badge/Python-3.10-blue?logo=python&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.12-blue?logo=python&logoColor=white)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green?logo=opensourceinitiative&logoColor=white)
 ![Status](https://img.shields.io/badge/Status-Complete-brightgreen)
 ![Made with](https://img.shields.io/badge/Made%20with-Jupyter-orange?logo=jupyter)
@@ -98,6 +98,7 @@ employee-retention-risk/
 │   ├── __init__.py
 │   └── retention_pipeline.py
 │
+├── .github/workflows/ci.yml       # GitHub Actions CI
 ├── app.py                          # Streamlit dashboard
 ├── .gitignore
 ├── LICENSE
