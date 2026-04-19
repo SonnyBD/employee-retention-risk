@@ -1,18 +1,17 @@
-
 # 👋 Welcome to the Employee Retention Risk Project
 
 This project uses machine learning and explainable AI to help HR teams predict which employees are most at risk of leaving — and why.
 
-![Risk Distribution amongst employees](outputs/Risk_Distribution_PieChart.png)
+![SHAP Feature Impact](outputs/SHAP_Global_Importance_HR_Friendly.png)
 
 ---
 
 ## 📈 Key Highlights
 
-- 88% accuracy, 98% recall for identifying leavers
-- 🔍 Top drivers: Overtime, Promotion Rate, Job Satisfaction
+- Calibrated XGBoost classifier with SMOTE applied inside each CV fold to prevent leakage
+- 🔍 Top drivers typically include Overtime, Promotion Rate, and Job Satisfaction
 - 🧠 SHAP-based explainability for transparent decision-making
-- 📊 HR-ready Excel output + visual dashboard
+- 📊 HR-ready CSV output + Streamlit dashboard
 
 ---
 
@@ -25,7 +24,6 @@ This project uses machine learning and explainable AI to help HR teams predict w
 ## 📂 Explore the Repository
 
 - 🔍 View the full README on [GitHub](https://github.com/SonnyBD/employee-retention-risk)
-- 📄 [Download the PDF version](outputs/Full_Retention_Model_Walkthrough_UPDATED.pdf)
 
 ---
 

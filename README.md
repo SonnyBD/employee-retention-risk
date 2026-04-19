@@ -5,19 +5,18 @@
 ![Status](https://img.shields.io/badge/Status-Complete-brightgreen)
 ![Made with](https://img.shields.io/badge/Made%20with-Jupyter-orange?logo=jupyter)
 ![CI](https://github.com/SonnyBD/employee-retention-risk/actions/workflows/ci.yml/badge.svg)
-![Last Updated](https://img.shields.io/badge/Last%20Updated-April%202025-blueviolet)
 
 [![View in nbviewer](https://img.shields.io/badge/View%20Notebook-nbviewer-orange?logo=jupyter)](https://nbviewer.org/github/SonnyBD/employee-retention-risk/blob/main/notebooks/Full_Retention_Model_Walkthrough.ipynb)
 
 A machine learning–driven People Analytics project that identifies employees at risk of leaving and explains the drivers behind attrition. Built to support HR teams in making proactive, data-informed retention decisions.
 
-![Retention Risk Pie Chart showing distribution of low, moderate, and high-risk employees](outputs/Risk_Distribution_PieChart.png)
+![SHAP Feature Impact](outputs/SHAP_Global_Importance_HR_Friendly.png)
 
 ---
 
 ## 🧠 Objective
 
-To build a calibrated, interpretable predictive model using HR data that estimates employee attrition risk, uncovers key retention factors, and segments employees into actionable risk tiers for HR intervention.
+Build a calibrated, interpretable predictive model on HR data that estimates employee attrition risk, uncovers key retention factors, and segments employees into actionable risk tiers for HR intervention.
 
 ---
 
@@ -25,8 +24,8 @@ To build a calibrated, interpretable predictive model using HR data that estimat
 
 - Python (pandas, scikit-learn, imbalanced-learn, SHAP)
 - XGBoost Classifier + Recursive Feature Elimination (RFE)
-- SMOTE for class balancing
-- Probability calibration (Platt scaling)
+- SMOTE for class balancing (applied inside CV folds via `imblearn.pipeline.Pipeline` to prevent leakage)
+- Probability calibration (Platt scaling via `CalibratedClassifierCV`)
 - SHAP for model explainability
 - Matplotlib for visualizations
 
@@ -34,22 +33,32 @@ To build a calibrated, interpretable predictive model using HR data that estimat
 
 ## 🔄 Workflow Summary
 
-1. Data cleaning and feature engineering  
-2. Class balancing using SMOTE  
-3. Feature selection with RFE  
-4. XGBoost model tuning and probability calibration  
-5. Risk scoring and percentile-based tiering (Low, Moderate, High)  
-6. SHAP-based interpretation of feature importance  
-7. Final outputs: Excel reports, risk segmentation, and SHAP visualizations
+1. Data cleaning and feature engineering
+2. Three-way split: train / validation / test
+3. Feature selection with RFE on training data
+4. XGBoost tuning with SMOTE applied per fold, then probability calibration
+5. Threshold tuning on the **validation set** (not the test set)
+6. Risk scoring and percentile-based tiering (Low, Moderate, High)
+7. SHAP-based interpretation of feature importance
+8. Final outputs: CSV reports, risk segmentation, SHAP visualizations, and serialized model artifacts
 
 ---
 
-## 📈 Key Results
+## 📈 Example Pipeline Output
 
-- ✅ **88% model accuracy**
-- 🎯 **Improved recall** for identifying leavers (minimized false negatives)
-- 🔍 **Top predictors**: Overtime, Promotion Rate, Job Satisfaction, Environment Satisfaction
-- ⚠️ **10% of employees flagged as high risk** using calibrated thresholds
+```
+Output directory: ./outputs
+Engineering features...
+After correlation filtering: 44 features
+Best parameters: {'xgb__learning_rate': 0.1, ...}
+Best threshold on validation set: 0.20 (F1: 0.45)
+Employee 1 top risk factors:
+  JobSatisfaction     -1.24
+  Doing_Overtime      -0.89
+  Single               1.03
+```
+
+Actual metrics vary slightly between runs depending on the random split, but F1 for the minority (leaver) class typically lands in the 0.40–0.50 range with AUC-ROC around 0.80. Accuracy alone is misleading on this imbalanced dataset — focus on recall and F1 for the leaver class.
 
 ---
 
@@ -63,24 +72,6 @@ To build a calibrated, interpretable predictive model using HR data that estimat
 
 ---
 
-## 📃 Example Output
-
-```
-Output directory: ./outputs
-Engineering features...
-After correlation filtering: 44 features
-Best parameters: {'learning_rate': 0.1, ...}
-Best threshold: 0.20, F1: 0.45
-Employee 1 top risk factors:
-  JobSatisfaction     -1.24
-  Doing_Overtime      -0.89
-  Single               1.03
-```
-
-![SHAP Feature Impact](outputs/SHAP_Global_Importance_HR_Friendly.png)
-
----
-
 ## 📂 Repository Structure
 
 ```
@@ -91,20 +82,28 @@ employee-retention-risk/
 │   └── WA_Fn-UseC_-HR-Employee-Attrition.csv
 │
 ├── notebooks/                      # Jupyter notebook walkthrough
-│   └── Full_Retention_Model_Walkthrough_UPDATED.ipynb
+│   └── Full_Retention_Model_Walkthrough.ipynb
 │
-├── outputs/                        # Final visualizations & export files
-│   ├── Retention_Risk_Analysis_Output.xlsx
-│   └── Risk_Distribution_PieChart.png
+├── outputs/                        # Generated artifacts (created by the pipeline)
+│   ├── final_calibrated_model.joblib
+│   ├── final_scaler.joblib
+│   ├── all_feature_columns.joblib
+│   ├── selected_feature_names.joblib
+│   ├── decision_threshold.joblib
+│   ├── selected_features.csv
+│   ├── SHAP_Global_Importance_HR_Friendly.png
+│   └── precision_recall_curve.png
 │
-├── employee_retention/              # Modular machine learning pipeline
+├── employee_retention/             # Modular ML pipeline
 │   ├── __init__.py
 │   └── retention_pipeline.py
 │
-├── .gitignore                      # Files to exclude from version control
-├── LICENSE                         # MIT open-source license
-├── README.md                       # Project overview and results
-└── requirements.txt                # Python environment dependencies
+├── app.py                          # Streamlit dashboard
+├── .gitignore
+├── LICENSE
+├── README.md
+├── requirements.txt
+└── setup.py
 ```
 
 ---
@@ -119,11 +118,14 @@ cd employee-retention-risk
 # 2. Install dependencies
 pip install -r requirements.txt
 
-# 3. Run the pipeline script
+# 3. Run the pipeline script (generates model + all artifacts the app needs)
 python -m employee_retention.retention_pipeline
 
-# 4. Launch the notebook for a full walkthrough
-jupyter notebook notebooks/Full_Retention_Model_Walkthrough_UPDATED.ipynb
+# 4. Launch the Streamlit dashboard
+streamlit run app.py
+
+# 5. (Optional) Open the notebook walkthrough
+jupyter notebook notebooks/Full_Retention_Model_Walkthrough.ipynb
 ```
 
 ---
@@ -138,14 +140,6 @@ This project uses the [IBM HR Analytics Employee Attrition dataset](https://www.
 
 Pull requests are welcome! For major changes, please open an issue first.
 
-To contribute:
-```bash
-1. Fork this repository
-2. Clone your fork
-3. Create a feature branch and commit changes
-4. Push and submit a PR
-```
-
 ---
 
 ## 📜 License
@@ -156,5 +150,4 @@ This project is licensed under the MIT License — open for use with attribution
 
 ## 👤 Author
 
-Built by [Sonny Bigras-Dewan](https://www.linkedin.com/in/sonny-bigras-dewan/) — let’s connect!
-
+Built by [Sonny Bigras-Dewan](https://www.linkedin.com/in/sonny-bigras-dewan/) — let's connect!
