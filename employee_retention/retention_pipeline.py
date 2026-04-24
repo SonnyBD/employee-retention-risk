@@ -39,10 +39,6 @@ from imblearn.pipeline import Pipeline as ImbPipeline
 
 from xgboost import XGBClassifier
 
-# numpy compat shim — must precede SHAP / XGBoost imports on older builds
-if not hasattr(np, 'int'):
-    np.int = int
-
 # ------------------------------------------------------------------
 # Data Loading & Feature Engineering
 # ------------------------------------------------------------------

@@ -87,7 +87,6 @@ The app loads everything via `@st.cache_resource` and errors out cleanly if any 
 
 ## Development Notes
 
-- The `np.int = int` compatibility shim in `retention_pipeline.py` is placed **before** SHAP/XGBoost imports to handle a numpy deprecation in older versions of those libraries.
 - Risk tiering uses the 90th percentile of predicted leave probability as the High/Moderate boundary, making it threshold-adaptive.
 - Positive class (`y=1`) is **Retained**; leave probability is therefore `1 - model.predict_proba(X)[:, 1]`.
 
