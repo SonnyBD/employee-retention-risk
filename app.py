@@ -27,6 +27,21 @@ OUTPUTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'outputs'
 
 
 @st.cache_resource
+def get_explainer(_model):
+    """
+    Initialize the SHAP TreeExplainer. Cached as a resource to avoid
+    re-initialization on every Streamlit rerun.
+    """
+    try:
+        base_pipeline = _model.calibrated_classifiers_[0].estimator
+    except AttributeError:
+        # sklearn < 1.2
+        base_pipeline = _model.calibrated_classifiers_[0].base_estimator
+    base_xgb = base_pipeline.named_steps['xgb']
+    return shap.TreeExplainer(base_xgb)
+
+
+@st.cache_resource
 def load_artifacts():
     """Load all pipeline artifacts. Raises a clear error if missing."""
     required = {
@@ -149,16 +164,7 @@ if submitted:
     )
 
     # SHAP explanation against the underlying XGBoost model.
-    # CalibratedClassifierCV wraps an imblearn pipeline; drill down to the
-    # base XGB estimator. Use the first calibrated classifier's pipeline.
-    try:
-        base_pipeline = model.calibrated_classifiers_[0].estimator
-    except AttributeError:
-        # sklearn < 1.2
-        base_pipeline = model.calibrated_classifiers_[0].base_estimator
-    base_xgb = base_pipeline.named_steps['xgb']
-
-    explainer = shap.TreeExplainer(base_xgb)
+    explainer = get_explainer(model)
     shap_values = explainer(scaled_selected)
 
     st.subheader("Top Contributing Features")
