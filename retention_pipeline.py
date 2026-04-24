@@ -16,11 +16,7 @@ Pipeline design notes:
   can reproduce identical preprocessing at inference time.
 """
 
-# numpy compatibility shim must run before SHAP / XGBoost import anything
 import numpy as np
-if not hasattr(np, 'int'):
-    np.int = int
-
 import os
 import joblib
 import pandas as pd
