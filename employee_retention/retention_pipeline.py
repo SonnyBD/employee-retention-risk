@@ -205,6 +205,59 @@ def explain_employee(explainer, X_row, feature_names, top_n=3):
     return shap_df.head(top_n)
 
 # ------------------------------------------------------------------
+# Save Artifacts & Reports
+# ------------------------------------------------------------------
+
+def plot_shap_importance(model, X_test, feature_names, output_dir):
+    """Calculate and plot SHAP global importance, and print top risk factors for a few examples."""
+    try:
+        base_pipeline = model.calibrated_classifiers_[0].estimator
+    except AttributeError:
+        base_pipeline = model.calibrated_classifiers_[0].base_estimator
+    base_xgb = base_pipeline.named_steps['xgb']
+
+    explainer = shap.TreeExplainer(base_xgb)
+    shap_vals = explainer.shap_values(X_test)
+    mean_abs_shap = np.abs(shap_vals).mean(axis=0)
+    shap_series = pd.Series(mean_abs_shap, index=feature_names).sort_values()
+
+    plt.figure()
+    shap_series.plot(kind='barh', figsize=(10, 6))
+    plt.title("Feature Importance (Average SHAP Impact)")
+    plt.xlabel("Mean Absolute SHAP Value")
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, 'SHAP_Global_Importance_HR_Friendly.png'))
+    plt.close()
+
+    # --- Per-employee explanations ---
+    for i, row in enumerate(X_test[:5]):
+        explanation = explain_employee(explainer, row.reshape(1, -1), feature_names)
+        print(f"Employee {i + 1} top risk factors:")
+        print(explanation.to_string(index=False))
+
+
+def save_artifacts(output_dir, model, scaler, all_feature_columns, selected_feature_names, best_thresh):
+    """Persist all models and metadata the app needs."""
+    joblib.dump(model, os.path.join(output_dir, 'final_calibrated_model.joblib'))
+    joblib.dump(scaler, os.path.join(output_dir, 'final_scaler.joblib'))
+    joblib.dump(all_feature_columns, os.path.join(output_dir, 'all_feature_columns.joblib'))
+    joblib.dump(selected_feature_names, os.path.join(output_dir, 'selected_feature_names.joblib'))
+    joblib.dump(best_thresh, os.path.join(output_dir, 'decision_threshold.joblib'))
+
+
+def save_reports(output_dir, model, X_test, best_thresh, risk_df, selected_feature_names):
+    """Generate CSV reports for predictions, risk tiers, and features."""
+    test_leave_prob = 1 - model.predict_proba(X_test)[:, 1]
+    preds_df = pd.DataFrame({
+        'Predictions': (test_leave_prob >= best_thresh).astype(int),
+    })
+    preds_df.to_csv(os.path.join(output_dir, 'retention_risk_predictions.csv'), index=False)
+    risk_df.to_csv(os.path.join(output_dir, 'retention_risk_tiers.csv'), index=False)
+    pd.DataFrame({'Selected_Features': selected_feature_names}).to_csv(
+        os.path.join(output_dir, 'selected_features.csv'), index=False,
+    )
+
+# ------------------------------------------------------------------
 # Entry Point
 # ------------------------------------------------------------------
 
@@ -298,6 +351,10 @@ def main():
     pd.DataFrame({'Selected_Features': selected_feature_names}).to_csv(
         os.path.join(output_dir, 'selected_features.csv'), index=False,
     )
+    # --- Visualisations & Artifacts ---
+    plot_shap_importance(model, X_test_sel, selected_feature_names, output_dir)
+    save_artifacts(output_dir, model, scaler, all_feature_columns, selected_feature_names, best_thresh)
+    save_reports(output_dir, model, X_test_sel, best_thresh, risk_df, selected_feature_names)
 
     print("\n✅ Pipeline complete — all artifacts saved to", output_dir)
 
