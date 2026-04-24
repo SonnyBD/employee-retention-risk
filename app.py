@@ -27,6 +27,21 @@ OUTPUTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'outputs'
 
 
 @st.cache_resource
+def get_explainer(_model):
+    """
+    Initialize the SHAP TreeExplainer. Cached as a resource to avoid
+    re-initialization on every Streamlit rerun.
+    """
+    try:
+        base_pipeline = _model.calibrated_classifiers_[0].estimator
+    except AttributeError:
+        # sklearn < 1.2
+        base_pipeline = _model.calibrated_classifiers_[0].base_estimator
+    base_xgb = base_pipeline.named_steps['xgb']
+    return shap.TreeExplainer(base_xgb)
+
+
+@st.cache_resource
 def load_artifacts():
     """Load all pipeline artifacts and initialize explainer. Raises a clear error if missing."""
     required = {
@@ -159,6 +174,8 @@ if submitted:
         f"This employee is {'FLAGGED' if flagged_high_risk else 'not flagged'} as high risk."
     )
 
+    # SHAP explanation against the underlying XGBoost model.
+    explainer = get_explainer(model)
     # SHAP explanation using cached explainer
     shap_values = explainer(scaled_selected)
 
