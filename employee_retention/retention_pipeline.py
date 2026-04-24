@@ -261,10 +261,7 @@ def main():
     risk_df = assign_risk(model, X_test_sel, threshold=best_thresh)
 
     # --- SHAP global importance ---
-    try:
-        base_pipeline = model.calibrated_classifiers_[0].estimator
-    except AttributeError:
-        base_pipeline = model.calibrated_classifiers_[0].base_estimator
+    base_pipeline = model.calibrated_classifiers_[0].estimator
     base_xgb = base_pipeline.named_steps['xgb']
 
     explainer = shap.TreeExplainer(base_xgb)

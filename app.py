@@ -47,11 +47,7 @@ def load_artifacts():
 
     # Pre-initialize SHAP explainer to avoid blocking on every request
     model = artifacts['model']
-    try:
-        base_pipeline = model.calibrated_classifiers_[0].estimator
-    except AttributeError:
-        # sklearn < 1.2
-        base_pipeline = model.calibrated_classifiers_[0].base_estimator
+    base_pipeline = model.calibrated_classifiers_[0].estimator
     base_xgb = base_pipeline.named_steps['xgb']
 
     artifacts['explainer'] = shap.TreeExplainer(base_xgb)
