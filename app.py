@@ -28,7 +28,7 @@ OUTPUTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'outputs'
 
 @st.cache_resource
 def load_artifacts():
-    """Load all pipeline artifacts. Raises a clear error if missing."""
+    """Load all pipeline artifacts and initialize explainer. Raises a clear error if missing."""
     required = {
         'model': 'final_calibrated_model.joblib',
         'scaler': 'final_scaler.joblib',
@@ -42,7 +42,21 @@ def load_artifacts():
             "Missing pipeline artifacts: " + ", ".join(missing) +
             "\nRun `python -m employee_retention.retention_pipeline` first."
         )
-    return {k: joblib.load(os.path.join(OUTPUTS_DIR, v)) for k, v in required.items()}
+
+    artifacts = {k: joblib.load(os.path.join(OUTPUTS_DIR, v)) for k, v in required.items()}
+
+    # Pre-initialize SHAP explainer to avoid blocking on every request
+    model = artifacts['model']
+    try:
+        base_pipeline = model.calibrated_classifiers_[0].estimator
+    except AttributeError:
+        # sklearn < 1.2
+        base_pipeline = model.calibrated_classifiers_[0].base_estimator
+    base_xgb = base_pipeline.named_steps['xgb']
+
+    artifacts['explainer'] = shap.TreeExplainer(base_xgb)
+
+    return artifacts
 
 
 st.set_page_config(page_title="Employee Retention Risk Dashboard", layout="centered")
@@ -63,6 +77,7 @@ scaler = artifacts['scaler']
 all_feature_columns = artifacts['all_cols']
 selected_features = artifacts['selected']
 threshold = artifacts['threshold']
+explainer = artifacts['explainer']
 
 
 with st.form("input_form"):
@@ -148,17 +163,7 @@ if submitted:
         f"This employee is {'FLAGGED' if flagged_high_risk else 'not flagged'} as high risk."
     )
 
-    # SHAP explanation against the underlying XGBoost model.
-    # CalibratedClassifierCV wraps an imblearn pipeline; drill down to the
-    # base XGB estimator. Use the first calibrated classifier's pipeline.
-    try:
-        base_pipeline = model.calibrated_classifiers_[0].estimator
-    except AttributeError:
-        # sklearn < 1.2
-        base_pipeline = model.calibrated_classifiers_[0].base_estimator
-    base_xgb = base_pipeline.named_steps['xgb']
-
-    explainer = shap.TreeExplainer(base_xgb)
+    # SHAP explanation using cached explainer
     shap_values = explainer(scaled_selected)
 
     st.subheader("Top Contributing Features")
